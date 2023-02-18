@@ -71,13 +71,15 @@ typedef unsigned Product;
 
 struct DeviceId {
   Product product;
-  Vendor vendor;
-  string description;
-  int brightness_min;
-  int brightness_max;
+  Vendor  vendor;
+  string  description;
+  int     brightness_min;
+  int     brightness_max;
 
-  DeviceId ( Vendor vendor_, Product product_, string description_,
-		 int brightness_min = 0, int brightness_max = 255 )
+  DeviceId (
+      Vendor vendor_, Product product_, string description_,
+      int brightness_min = 0, int brightness_max = 255
+  )
     : product( product_ )
     , vendor( vendor_ )
     , description( description_ )
@@ -85,19 +87,20 @@ struct DeviceId {
 	, brightness_max(brightness_max)
 	{ }
 
-  bool operator < ( const DeviceId& other ) const {
+  bool operator < ( const DeviceId& other ) const
+  {
     return (vendor < other.vendor) || 
       (vendor == other.vendor && product < other.product );
   }
 };
 
-typedef set< DeviceId > SupportedDevices;
+typedef set<DeviceId> SupportedDevices;
 SupportedDevices supportedDevices;
 
-typedef map< Vendor, string > SupportedVendors;
+typedef map<Vendor, string> SupportedVendors;
 SupportedVendors supportedVendors;
 
-typedef pair< Vendor, string> VendorDesc;
+typedef pair<Vendor, string> VendorDesc;
 
 
 /**
@@ -125,23 +128,33 @@ bool number( const char* str ){
   return true;
 }
 
-/** @return a non-NULL DeviceID ptr if the device is in our database */
-const DeviceId* is_supported ( const hiddev_devinfo& device_info ) {
+/**
+ * Check if a HID device is supported and return a pointer to the corresponding DeviceId.
+ *
+ * @return Pointer to DeviceId if it's recognised, null pointer otherwise.
+ */
+const DeviceId* is_supported ( const hiddev_devinfo& device_info )
+{
   Product product = device_info.product & 0xFFFF;
   Vendor vendor = device_info.vendor & 0xFFFF;
 
   SupportedDevices::const_iterator i = supportedDevices.find( DeviceId( vendor, product, "" ));
   if (i != supportedDevices.end())
 	  return &*i;
+
   return 0;
 }
 
 /**
- * @param v query vendor
- * @param p query product
- * @return description of the device with given vendor and product 
+ * Get the description of a USB HID device, if it's supported, given its USB vendor and product
+ *
+ * @param  v  Vendor identifier
+ * @param  p  Product identifier
+ *
+ * @return Device description if known, empty string otherwise.
  */
-string description ( Vendor v, Product p ) {
+string description ( Vendor v, Product p )
+{
   SupportedDevices::iterator it = 
     supportedDevices.find( DeviceId( v, p, "" ));
 
@@ -151,43 +164,64 @@ string description ( Vendor v, Product p ) {
   return "";
 }
 
-/** @param v vendor to query
- * @return true if the venodr is in the database 
+/**
+ * Is the USB vendor identifier known to this program?
+ *
+ * @param  v  Vendor identifier
+ *
+ * @return True if the vendor is known to this program.
  */
-bool known_vendor ( Vendor v ) {
+bool known_vendor ( Vendor v )
+{
   v &= 0xFFFF;
+
   return supportedVendors.find( v ) != supportedVendors.end();
 }
 
-/** Checks whether the HID device is a usb monitor 
+/**
+ * Checks whether the HID device implements the Monitor Control application (0x80)
+ *
  * @param device_info HID device info
  * @param fd file to read applications from
+ *
+ * @return Whether the HID device implements implements the Monitor Control application (0x80)
  */
-bool is_usb_monitor ( const hiddev_devinfo& device_info, int fd ) {
-  
-  /* Now that we have the number of applications, we can retrieve them */
-  /* using the HIDIOCAPPLICATION ioctl() call */
-  /* applications are indexed from 0..{num_applications-1} */
+bool is_usb_monitor ( const hiddev_devinfo& device_info, int fd )
+{
+  /**
+   * HID devices support a number of applications. The device_info struct tells us how many applications
+   * are supported by this device, so we can iterate through them. We can then get each application's
+   * identifier using ioctl() and compare it to the Monitor Control application ID (0x80) per the
+   * HID Usage Tables 1.4.
+   */
   for ( int appl_num = 0; appl_num < device_info.num_applications; 
-        ++appl_num ) {
+        ++appl_num )
+  {
     int application = ioctl( fd, HIDIOCAPPLICATION, appl_num );
-    /* See https://usb.org/document-library/hid-usage-tables-14 for the source of 0x80 */
-    if ( ((application >> 16) & 0xFF) == 0x80 ) {
+
+    // See https://usb.org/document-library/hid-usage-tables-14
+    if ( ((application >> 16) & 0xFF) == 0x80 )
+    {
       return true;
     }
   }
+
   return false;
 }
 
-/** Pretty-prints the given device information
+/**
+ * Prints the formatted information for the device
+ *
  * @param o output stream to print to
  * @param device_info HID device info
  */
 void format_device( ostream& o, const hiddev_devinfo& device_info ) {
   Vendor  v = device_info.vendor & 0xFFFF;
   Product p = device_info.product & 0xFFFF;
+
   o << "Vendor=" << showbase << setw( 6 ) << hex << v;
-  if ( known_vendor( v ) )
+
+  if ( known_vendor( v ))
     o << " (" << supportedVendors[ v ] << ")";
   
   o << ", Product=" << showbase << setw( 6 ) << hex << p ;
@@ -198,25 +232,15 @@ void format_device( ostream& o, const hiddev_devinfo& device_info ) {
   o << endl;
 }
 
-
-/** Debug routine for dumping device usage 
- * @param usage_ref usage description 
- */
-void dump_usage ( hiddev_usage_ref& usage_ref ) {
-  printf ("  report_type   =%d\n", usage_ref.report_type );
-  printf ("  report_id     =%d\n", usage_ref.report_id );
-  printf ("  field_index   =%d\n", usage_ref.field_index );
-  printf ("  usage_index   =%d\n", usage_ref.usage_index );
-  printf ("  usage_code    =%d\n", usage_ref.usage_code );
-}
-
-/** Prints help for the program.
+/**
+ * Prints help for the program.
+ *
  * @param programName this program name
  */
 void help( const char *programName ) {
   printf( "asdcontrol " VERSION "\n");
 
-  printf( "USAGE: %s [--silent|-s] [--brief|-b] [--help|-h] [--about|-a] "
+  printf( "USAGE: %1$s [--silent|-s] [--brief|-b] [--help|-h] [--about|-a] "
           "[--detect|-d] [--list-all |-l] <hid device(s)> [<brightness>]\n\n"
           "Parameters:\n"
           "  --silent,-s\n"
@@ -254,24 +278,24 @@ void help( const char *programName ) {
           "In the following examples I assume that your HID device is /dev/usb/hiddev0. You may \n"
           "have it as /dev/hiddevX or /dev/usb/hiddevX.\n"
           "\n"
-          "  asdcontrol\n"
-          "  asdcontrol --help\n"
+          "  %1$s\n"
+          "  %1$s --help\n"
           "      Show this help message.\n"
           "\n"
-          "  asdcontrol --detect /dev/usb/hiddev*\n"
+          "  %1$s --detect /dev/usb/hiddev*\n"
           "      Perform detection, which HID device is actually your display to be controlled.\n"
           "\n"
-          "  asdcontrol /dev/usb/hiddev0\n"
+          "  %1$s /dev/usb/hiddev0\n"
           "      Read current brightness parameter\n"
           "\n"
-          "  asdcontrol /dev/usb/hiddev0 20000\n"
+          "  %1$s /dev/usb/hiddev0 20000\n"
           "      Set brightness to 160. Note, that brightness setting depends on your model. \n"
           "      Generally, this parameter may get values in the range [0-65536].\n"
           "\n"
-          "  asdcontrol /dev/usb/hiddev0 +100\n"
+          "  %1$s /dev/usb/hiddev0 +100\n"
           "      Increment current brightness by 100.\n"
           "\n"
-          "  asdcontrol /dev/usb/hiddev0 -- -100\n"
+          "  %1$s /dev/usb/hiddev0 -- -100\n"
           "      Decrement current brightness by 100. Please,note '--'!\n"
           ,
       
@@ -280,8 +304,9 @@ void help( const char *programName ) {
 
 /** Prints brief notice about the program */
 void notice() {
-  printf( "ASDControl " VERSION " -- Apple Studio Display Brightness Control\n" );
-  printf( "Copyright (c) 2023 Nicholas K. Dionysopoulos\n\n" );
+  printf( "ASDControl " VERSION " -- Apple Studio Display Brightness Control\n"
+          "Copyright (c) 2023 Nicholas K. Dionysopoulos\n\n"
+         );
 }
 
 /** Prints detailed info about this program */
@@ -368,119 +393,139 @@ int main (int argc, char **argv) {
     if (c == -1)
       break;
       
-    switch (c) {
-    case 'a':
-      about();
-      exit( 0 );
-        
-    case 'b':
-      brief=true;
-      break;
-        
-    case 'h':
-      help( argv[0] );
-      exit( 0 );
-      break;
-        
-    case 's':
-      silent=true;
-      break;
-      
-    case 'f':
-      force=true;
-      break;
+    switch (c)
+    {
+      case 'a':
+        about();
+        exit( 0 );
 
-    case 'd':
-      mode=USAGE_MODE_DETECT;
-      break;
+      case 'b':
+        brief=true;
+        break;
 
-    case 'l':
-      dump_supported();
-      exit( 0 );
-        
-    default:
-      fprintf (stderr,"Unknown option '%c'\n", c);
-      help( argv[0] );
-      exit( 2 );
+      case 'h':
+        help( argv[0] );
+        exit( 0 );
+        break;
+
+      case 's':
+        silent=true;
+        break;
+
+      case 'f':
+        force=true;
+        break;
+
+      case 'd':
+        mode=USAGE_MODE_DETECT;
+        break;
+
+      case 'l':
+        dump_supported();
+        exit( 0 );
+
+      default:
+        fprintf (stderr,"Unknown option '%c'\n", c);
+        help( argv[0] );
+        exit( 2 );
     }
   }
 
   typedef list< const char* > FileList;
   FileList files;
   
-  for ( int param = optind; param < argc; ++param ) {
-    if ( mode != USAGE_MODE_DETECT && number ( argv[ param ] ) ) {
-      if ( argv[ param ][0] == '+' || argv[ param ][0] == '-' ) {
+  for ( int param = optind; param < argc; ++param )
+  {
+    if ( mode != USAGE_MODE_DETECT && number ( argv[ param ] ) )
+    {
+      if ( argv[ param ][0] == '+' || argv[ param ][0] == '-' )
+      {
         mode = USAGE_MODE_SETREL;
         amount = atoi ( argv[ param ] );
-      } else {
+      }
+      else
+      {
         mode = USAGE_MODE_SET;
         brightness = atoi ( argv[ param ] );
       }
+
       continue;
     }
 
     files.push_back( argv[ param ] );
   }
 
-  if ( files.empty() ) {
+  if ( files.empty() )
+  {
     help( argv[0] );
     exit( 1 );
   }
 
-  if ( mode == USAGE_MODE_SET || mode == USAGE_MODE_SETREL ) {
+  if ( mode == USAGE_MODE_SET || mode == USAGE_MODE_SETREL )
+  {
     open_mode = O_RDWR;
   }
 
   if ( !silent )
     notice();
 
-  for ( FileList::iterator it = files.begin(); it != files.end();
-        ++it ) {
-    if (( fd = open( *it, open_mode )) < 0) {
+  for ( FileList::iterator it = files.begin(); it != files.end(); ++it )
+  {
+    if (( fd = open( *it, open_mode )) < 0)
+    {
       perror(*it);
       continue;
     }
     
     /* ioctl() accesses the underlying driver */
     ioctl(fd, HIDIOCGVERSION, &version);
-    /* the HIDIOCGVERSION ioctl() returns a packed 32 field (aka integer) */
-    /* so we unpack it and display it */
+
+    // Unpack the 32-bit int field returned by the HIDIOCGVERSION ioctl() call
     if ( ! silent && first_device )
       printf("hiddev driver version is %d.%d.%d\n",
              version >> 16, (version >> 8) & 0xff, version & 0xff);
     
-    /* suck out some device information */
+    // Get the device information
     ioctl(fd, HIDIOCGDEVINFO, &device_info);
     
-    if ( mode == USAGE_MODE_DETECT ) {
-      if ( is_usb_monitor( device_info, fd ) ) {
+    if ( mode == USAGE_MODE_DETECT )
+    {
+      if ( is_usb_monitor( device_info, fd ) )
+      {
         cout << *it << ": USB Monitor - "
              << (is_supported( device_info ) ? "SUPPORTED": "UNSUPPORTED")
              << ".\t";
         format_device( cout, device_info );
       }
+
       continue;
     }
 
-    if ( not (selected_device = is_supported ( device_info )) ){
+    if ( not (selected_device = is_supported ( device_info )) )
+    {
       cerr << "Device unsupported:";
+
       format_device(cerr, device_info);
+
       if ( !force )
         exit ( 2 );
     }
     
     
-    if (! is_usb_monitor( device_info, fd )) {
+    if (! is_usb_monitor( device_info, fd ))
+    {
       cerr << *it << ": This device is NOT USB monitor!" << endl;
+
       continue;
     }
     
     /* Initialise the internal report structures */
-    if (ioctl(fd, HIDIOCINITREPORT,0) < 0) {
+    if (ioctl(fd, HIDIOCINITREPORT,0) < 0)
+    {
       cerr << "FATAL: Failed to initialize internal report structures"
            << endl;
-      exit(1);
+
+           exit(1);
     }
     
     usage_ref.report_type = HID_REPORT_TYPE_FEATURE;
@@ -489,57 +534,75 @@ int main (int argc, char **argv) {
     usage_ref.usage_index = 0;
     usage_ref.usage_code = USAGE_CODE;
     usage_ref.value = brightness;
-    //  dump_usage ( usage_ref );
     
     rep_info.report_type = HID_REPORT_TYPE_FEATURE;
     rep_info.report_id = BRIGHTNESS_CONTROL;
     rep_info.num_fields = 1;
 
-    if ( mode == USAGE_MODE_SET ) {
-      if ( ioctl(fd, HIDIOCSUSAGE, &usage_ref) < 0 ) {
+    if ( mode == USAGE_MODE_SET )
+    {
+      if ( ioctl(fd, HIDIOCSUSAGE, &usage_ref) < 0 )
+      {
         perror ("Usage failed!");
         exit ( 2 );
       }
-      if ( ioctl(fd, HIDIOCSREPORT, &rep_info) < 0 ) {
+
+      if ( ioctl(fd, HIDIOCSREPORT, &rep_info) < 0 )
+      {
         perror ("Report failed!");
         exit ( 3 );
       }
-    } else {
-      if ( ioctl(fd, HIDIOCGUSAGE, &usage_ref) < 0 ) {
+    }
+    else
+    {
+      if ( ioctl(fd, HIDIOCGUSAGE, &usage_ref) < 0 )
+      {
         perror ("Usage failed!");
         exit ( 2 );
       }
-      if ( ioctl(fd, HIDIOCGREPORT, &rep_info) < 0 ) {
+
+      if ( ioctl(fd, HIDIOCGREPORT, &rep_info) < 0 )
+      {
         perror ("Report failed!");
         exit ( 3 );
       }
-      if ( mode == USAGE_MODE_SETREL ) {
+
+      if ( mode == USAGE_MODE_SETREL )
+      {
         brightness = usage_ref.value + amount;
         brightness = max( selected_device->brightness_min, brightness);
         brightness = min( selected_device->brightness_max, brightness);
         usage_ref.value = brightness;
 
         /* set calculated brightness */
-        if ( ioctl(fd, HIDIOCSUSAGE, &usage_ref) < 0 ) {
+        if ( ioctl(fd, HIDIOCSUSAGE, &usage_ref) < 0 )
+        {
           perror ("Usage failed!");
           exit ( 2 );
         }
+
         if ( ioctl(fd, HIDIOCSREPORT, &rep_info) < 0 ) {
           perror ("Report failed!");
           exit ( 3 );
         }
+
         /* read brightness back from device */
-        if ( ioctl(fd, HIDIOCGUSAGE, &usage_ref) < 0 ) {
+        if ( ioctl(fd, HIDIOCGUSAGE, &usage_ref) < 0 )
+        {
           perror ("Usage failed!");
           exit ( 2 );
         }
-        if ( ioctl(fd, HIDIOCGREPORT, &rep_info) < 0 ) {
+
+        if ( ioctl(fd, HIDIOCGREPORT, &rep_info) < 0 )
+        {
           perror ("Report failed!");
           exit ( 3 );
         }
       }
+
       if ( !brief )
         cout << *it << ": BRIGHTNESS=";
+
       cout << usage_ref.value << endl;
     }
 
@@ -557,8 +620,7 @@ void init_device_database() {
 }
 
 void dump_supported () {
-  for ( SupportedDevices::iterator it = supportedDevices.begin();
-        it != supportedDevices.end(); ++ it )
+  for ( SupportedDevices::iterator it = supportedDevices.begin(); it != supportedDevices.end(); ++ it )
     cout << "Vendor=" << setw( 6 ) << hex << showbase << it->vendor
          << " (" << supportedVendors[ it->vendor ] << "), "
          << "Product=" << it->product << " [" 
