@@ -1,4 +1,9 @@
-asdcontrol: asdcontrol.cpp
+.PHONY: clean
+
+asdcontrol: asdcontrol.cpp FORCE
+	g++ asdcontrol.cpp -o asdcontrol
 
 clean:
-	rm asdcontrol
+	rm -f asdcontrols
+
+FORCE:
