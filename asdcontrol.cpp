@@ -1,4 +1,7 @@
 /*
+ * ASDControl -- Apple Studio Display Brightness Control
+ * Copyright (c) 2023 Nicholas K. Dionysopoulos
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or 
@@ -13,11 +16,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
-#define HID_MAX_USAGES			1024
-#define HID_MAX_APPLICATIONS	16
-
-#define VERSION "0.4"
-
 #include <stdlib.h>
 #include <string.h>
 #include <fcntl.h>
@@ -38,6 +36,13 @@
 #include <list>
 
 using namespace std;
+
+// Limits for the HID device feature detection loops
+#define HID_MAX_USAGES			1024
+#define HID_MAX_APPLICATIONS	16
+
+// Current version
+#define VERSION "0.4"
 
 // Operation modes for this software
 const int USAGE_MODE_GET = 0;
@@ -95,11 +100,29 @@ SupportedVendors supportedVendors;
 typedef pair< Vendor, string> VendorDesc;
 
 
-/** @return whether the string *seems* to be a number */
+/**
+ * Does it look like a number?
+ *
+ * @return Whether the string looks like an integer, or a relative number.
+ */
 bool number( const char* str ){
   if (!str ) return false;
+
+  if (!(((*str >= '0') && (*str <= '9')) || (*str == '+') || (*str == '-')))
+  {
+    return false;
+  }
+
+  for (char c = *str; c; c=*++str)
+  {
+    if (!((c >= '0') && (c <= '9')))
+    {
+      return false;
+    }
+
+  }
   
-  return ((*str >= '0') && (*str <= '9')) || (*str == '+') || (*str == '-');
+  return true;
 }
 
 /** @return a non-NULL DeviceID ptr if the device is in our database */
