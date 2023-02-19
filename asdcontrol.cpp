@@ -510,7 +510,7 @@ int main (int argc, char **argv) {
 
     if ( not (selected_device = is_supported ( device_info )) )
     {
-      cerr << "Device unsupported:";
+      cerr << "Unsupported device:";
 
       format_device(cerr, device_info);
 
@@ -521,7 +521,7 @@ int main (int argc, char **argv) {
     
     if (! is_usb_monitor( device_info, fd ))
     {
-      cerr << *it << ": This device is NOT USB monitor!" << endl;
+      cerr << *it << ": This device is not a USB monitor!" << endl;
 
       continue;
     }
@@ -550,13 +550,13 @@ int main (int argc, char **argv) {
     {
       if ( ioctl(fd, HIDIOCSUSAGE, &usage_ref) < 0 )
       {
-        perror ("Usage failed!");
+        perror ("Cannot set brightness");
         exit ( 2 );
       }
 
       if ( ioctl(fd, HIDIOCSREPORT, &rep_info) < 0 )
       {
-        perror ("Report failed!");
+        perror ("Cannot read brightness");
         exit ( 3 );
       }
     }
@@ -564,13 +564,13 @@ int main (int argc, char **argv) {
     {
       if ( ioctl(fd, HIDIOCGUSAGE, &usage_ref) < 0 )
       {
-        perror ("Usage failed!");
+        perror ("Cannot ask monitor for brightness control");
         exit ( 2 );
       }
 
       if ( ioctl(fd, HIDIOCGREPORT, &rep_info) < 0 )
       {
-        perror ("Report failed!");
+        perror ("Cannot read brightness");
         exit ( 3 );
       }
 
@@ -584,25 +584,25 @@ int main (int argc, char **argv) {
         /* set calculated brightness */
         if ( ioctl(fd, HIDIOCSUSAGE, &usage_ref) < 0 )
         {
-          perror ("Usage failed!");
+          perror ("Cannot set brightness");
           exit ( 2 );
         }
 
         if ( ioctl(fd, HIDIOCSREPORT, &rep_info) < 0 ) {
-          perror ("Report failed!");
+          perror ("Cannot read brightness");
           exit ( 3 );
         }
 
         /* read brightness back from device */
         if ( ioctl(fd, HIDIOCGUSAGE, &usage_ref) < 0 )
         {
-          perror ("Usage failed!");
+          perror ("Cannot ask monitor for brightness control");
           exit ( 2 );
         }
 
         if ( ioctl(fd, HIDIOCGREPORT, &rep_info) < 0 )
         {
-          perror ("Report failed!");
+          perror ("Cannot read brightness");
           exit ( 3 );
         }
       }
@@ -623,7 +623,7 @@ void init_device_database() {
   supportedVendors.insert( VendorDesc( APPLE, "Apple" ) );
 
   supportedDevices.insert( DeviceId( APPLE, STUDIO_DISPLAY_27,
-                                     "Apple Studio Display 27\"", 400, 60000 ));
+                                     "Apple Studio Display (2022, 27\")", 400, 60000 ));
 }
 
 void dump_supported () {

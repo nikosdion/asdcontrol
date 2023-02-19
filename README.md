@@ -1,93 +1,127 @@
 # Apple Studio Display Brightness Control
 
+A simple program to control the brightness of the Apple Studio Display (2022) on Linux.
+
+Based on acdcontrol by Pavel Gurevich.
+
 ## Compiling
 
-Run
+Make sure you have installed the necessary packages in your distribution, e.g. `sudo apt install build-essential` on Ubuntu.
 
-    make
+Run `make`. A new file `asdcontrol` should appear in the same directory.
 
-A new file `asdcontrol` should appear in the same directory.
-
-If compiling failed, check if you have installed packages necessary for compiling (e.g. `build-essential`).
+Use `sudo make install` to install the compiled program in `/usr/local/bin/asdcontrol`.
 
 ## Usage
 
   ./asdcontrol [--silent|-s] [--brief|-b] [--help|-h] [--about|-a] [--detect|-d] [--list-all|-l] <hid device(s)> [<brightness>]
 
-NOTE: You must have write permissions to this device in order to control the display being a
-user, not root. If you have no such permissions, you can either grant read/write permission to
-the world::
-
-    sudo chmod a+rw /dev/usb/hiddevX
-
-or change the ownership::
-
-    sudo chown <your user name>:users /dev/usb/hiddevX
-
-
-NOTE: It should be safe to run the program against a device other than your Apple Studio Display as
-the program checks whether the device is Apple display and warns about it.
-
-
 ### Parameters
 
--s, --silent
-    Suppress non-functional program output
+`-s, --silent`
 
--b, --brief
-    Print brightness value only when in query mode, otherwise ignored.
+Suppress non-functional program output
 
--h, --help
-    Show short help message and quit.
+`-b, --brief`
 
--a, --about
-    Show information about the program, some credits and thanks.
+Only output the brightness level when no absolute or relative brightness is provided in the command line.
 
--d, --detect
-    Run program in the detection mode. In this mode no writes are performed to device so you can
-    use any number of files if you are not sure that your monitor(s) are supported.
+`-h, --help`
 
--l, --list-all
-    Lists all "officially" supported monitors and quits.
+Display the built-in help message
 
-brightness
-    When this option is specified, the operation is to set brightness, otherwise, the current
-    brightness is retrieved. If brightness starts with `+` or `-`, the current brightness is
-    increased or decreased by that value. (Note: You have to place `--` before the negative value!)
+`-a, --about`
 
-    Brightness is an integer (whole number) parameter usually between 0 and 65536.
-    Note, that not every value toggles the backlight power; different Apple Studio Display models have
-    different granularity.
+Display the copyright and license information.
 
-    See also: `--brief` option and "Known Limitations" section.
+`-d, --detect`
 
+Detect the Apple Studio Display HID device. You **must** also provide `/dev/usb/hiddev*` (or `/dev/hiddev*`, depending on your Linux distribution) in the command line for the detection to do anything useful.
 
-## Usage examples
+`-l, --list-all`
 
-In the following examples I assume that your HID device is `/usb/dev/hiddev0`. You may have it as
-`/dev/hiddevX` or `/dev/usb/hiddevX`.
+Lists all supported monitor models and quits. Currently, this is just the Apple Studio Display (2022).
 
-asdcontrol --help
-    Show long help message.
+`<brightness>`
 
-asdcontrol --detect /dev/hiddev*
-    Perform detection, which HID device is actually your display to be controlled.
+When this option is not provided, the program will read and report the current brightness level of the monitor.
 
-asdcontrol /dev/hiddev0
-    Read current brightness parameter
+When this option is set, the program will set the brightness to the option's value. You can use a relative brightness level by prefixing the option value with `+` to increase the brightness by this much, or `-` to decrease the brightness by this much. Please note that you must place `--` before a negative value. See the examples.
 
-asdcontrol /dev/hiddev0 160
-    Set brightness to 160. Note, that brightness setting depends on your model. Generally, this
-    parameter may get values in the range ``[0-255]``.
+The brightness is an integer (whole number). For the Apple Studio Display (2022) this can be between 400 and 60000. Not all values result in a visible backlight power change. It appears that the granularity is around 2980 (for a total of 20 brightness steps from lowest to highest brightness) for the 2022 Apple Studio Display.
 
-asdcontrol /dev/hiddev0 +10
-    Increment current brightness by 10.
+### Examples
 
-asdcontrol /dev/hiddev0 -- -10
-    Decrement current brightness by 10. Please,note ``--``!
+Assuming that your monitor's device is `/usb/dev/hiddev0` here are some usage examples:
 
+`asdcontrol --help`
+
+Show the built-in help message.
+
+`asdcontrol --about`
+
+Show the copyright and license information.
+
+`asdcontrol --detect /dev/usb/hiddev*`
+
+Detect the device which corresponds to your Apple Studio Display.
+
+`asdcontrol /usb/dev/hiddev0`
+
+Read and report the current brightness level.
+
+`asdcontrol /usb/dev/hiddev0 10000`
+
+Set the brightness to 30000; that's about 50% brightness. The range of values for Apple Studio Display is 400 to 60000.
+
+`asdcontrol /dev/hiddev0 +5960`
+
+Increment current brightness by 5960 (that's a 10% brightness increase).
+
+`asdcontrol /dev/hiddev0 -- -5960`
+
+Decrement current brightness by 5960 (that's a 10% brightness decreate). Please note the `--` before the negative number. Without the double dash, a single dash (‘tack’) is understood as setting an option, therefore it won't work.
+
+## Troubleshooting
+
+### Cannot detect the display
+
+This program only control the Apple Studio Display (2022).
+
+To make sure that the Apple Studio Display is recognised correctly by the kernel's USB subsystem run `lsusb  | grep 05ac:1114`. It should reply with something like the following (the bus and device may be different on your system):
+
+```
+Bus 005 Device 003: ID 05ac:1114 Apple, Inc. Studio Display
+```
+
+The stuff next to the ID is the USB vendor identifier, followed by a colon, followed by the USB product identifier, followed by a space and the product description as returned by the connected device. This program looks for the vendor identifier 05ac (Apple, Inc) and the product ID 1114 (Apple Studio Display, 2022 model).
+
+If you want to control an older Apple monitor please look at [https://github.com/yhaenggi/acdcontrol](acdcontrol).
+
+### This device is not a USB monitor!
+
+This program checks that the HID device you provided in the command line implements the USB Monitor Control interface. If it doesn't, it returns the error “This device is not a USB monitor”.
+
+Try using a different USB HID device. The one you are using does not correspond to your Apple Studio Display.
+
+### Permission denied
+
+If you get `Permission denied` trying to use this program you have a permissions issue. You need write permissions to the Apple Studio Display's HID device to be able to control its brightness if you are not root.
+
+The _correct_ way to address this is to create a new file `/etc/udev/rules.d/50-apple-studio.rules` with the contents:
+
+```
+KERNEL=="hiddev*", ATTRS{idVendor}=="05ac", ATTRS{idProduct}=="1114", GROUP="users", OWNER="root", MODE="0660"
+```
+
+Afterwards, reload the udev permissions with `sudo udevadm control --reload-rules`.
+
+The program checks if the HID device you have provided is a known model (based on the USB vendor and product IDs reported by the device) and whether it supports HID Monitor Control. As a result it should be safe to use against the wrong HID device; it will simply tell you something like “This device is not a USB monitor!”.
+
+This also means that if you are not sure which HID device is your Apple Studio Display you can run this program against `/dev/usb/hiddev*` (or `/dev/hiddev*`, depending on your Linux distribution), i.e. tell it to go through _all_ known HID devices. The program will operate only against the HID devices which correspond to an Apple Studio Display.
 
 ## Known Limitations
 
-Currently, the display detection process is not fully automated as you need to specify a HID
-device path.
+Currently, the display detection process is not fully automated as you need to specify a HID device path. You can, of course, use `/dev/usb/hiddev*` (or `/dev/hiddev*`, depending on your Linux distribution) to have the program go through the entire list of HID devices connected to the computer. This is generally safe, albeit a tad slow. If you have more than one Apple Studio Display monitors it will also apply the brightness controls to both monitors which might not be what you intended to do.
+
+This program only controls the monitor brightness. The Apple Studio Display monitor does not expose any controls for contrast, saturation etc. Moreover, this program cannot be used to update the monitor's firmware or change the camera settings such as Center Stage; this is only possible through macOS (the monitor essentially runs a cut-down version of iOS).
