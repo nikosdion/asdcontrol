@@ -1,6 +1,6 @@
 .PHONY: clean
 
-asdcontrol: asdcontrol.cpp FORCE
+asdcontrol: asdcontrol.cpp
 	g++ -Og asdcontrol.cpp -o asdcontrol
 
 debug: asdcontrol.cpp FORCE
@@ -8,5 +8,8 @@ debug: asdcontrol.cpp FORCE
 
 clean:
 	rm -f asdcontrols
+
+install: asdcontrol
+	cp asdcontrol /usr/local/bin/asdcontrol
 
 FORCE:
