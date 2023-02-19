@@ -69,8 +69,7 @@ void dump_supported();
 typedef unsigned Vendor;
 typedef unsigned Product;
 
-struct DeviceId
-{
+struct DeviceId {
     Product product;
     Vendor  vendor;
     string  description;
@@ -110,24 +109,65 @@ typedef pair<Vendor, string> VendorDesc;
  */
 bool number ( const char* str )
 {
-    if ( !str ) return false;
+    bool hasPercent = false;
 
-    if ( ! ( ( ( *str >= '0' ) && ( *str <= '9' ) ) || ( *str == '+' ) || ( *str == '-' ) ) )
-    {
+    if ( !str ) {
+        return false;
+    }
+
+    if ( ! ( ( ( *str >= '0' ) && ( *str <= '9' ) ) || ( *str == '+' ) || ( *str == '-' ) ) ) {
         return false;
     }
 
     ++str;
 
-    for ( char c = *str; c; c=*++str )
-    {
-        if ( ( c < '0' ) || ( c > '9' ) )
-        {
+    for ( char c = *str; c; c=*++str ) {
+        if ( ( c == '%' ) && !hasPercent ) {
+            hasPercent = true;
+
+            continue;
+        }
+
+        // The percent sign must be the last character
+        if ( hasPercent ) {
+            return false;
+        }
+
+        if ( ( c < '0' ) || ( c > '9' ) ) {
             return false;
         }
     }
 
     return true;
+}
+
+/**
+ * Does the string end with a percent sign?
+ *
+ * @return Whether the string ends with a percent sign.
+ */
+bool isPercent ( const char* str )
+{
+    bool hasPercent = false;
+
+    if ( !str ) {
+        return false;
+    }
+
+    for ( char c = *str; c; c=*++str ) {
+        if ( ( c == '%' ) && !hasPercent ) {
+            hasPercent = true;
+
+            continue;
+        }
+
+        // The percent sign must be the last character
+        if ( hasPercent ) {
+            return false;
+        }
+    }
+
+    return hasPercent;
 }
 
 /**
@@ -141,8 +181,9 @@ const DeviceId* is_supported ( const hiddev_devinfo& device_info )
     Vendor vendor = device_info.vendor & 0xFFFF;
 
     SupportedDevices::const_iterator i = supportedDevices.find ( DeviceId ( vendor, product, "" ) );
-    if ( i != supportedDevices.end() )
+    if ( i != supportedDevices.end() ) {
         return &*i;
+    }
 
     return 0;
 }
@@ -160,8 +201,9 @@ string description ( Vendor v, Product p )
     SupportedDevices::iterator it =
         supportedDevices.find ( DeviceId ( v, p, "" ) );
 
-    if ( it != supportedDevices.end() )
+    if ( it != supportedDevices.end() ) {
         return it->description;
+    }
 
     return "";
 }
@@ -197,13 +239,11 @@ bool is_usb_monitor ( const hiddev_devinfo& device_info, int fd )
      * HID Usage Tables 1.4.
      */
     for ( int appl_num = 0; appl_num < device_info.num_applications;
-            ++appl_num )
-    {
+            ++appl_num ) {
         int application = ioctl ( fd, HIDIOCAPPLICATION, appl_num );
 
         // See https://usb.org/document-library/hid-usage-tables-14
-        if ( ( ( application >> 16 ) & 0xFF ) == 0x80 )
-        {
+        if ( ( ( application >> 16 ) & 0xFF ) == 0x80 ) {
             return true;
         }
     }
@@ -224,13 +264,15 @@ void format_device ( ostream& o, const hiddev_devinfo& device_info )
 
     o << "Vendor=" << showbase << setw ( 6 ) << hex << v;
 
-    if ( known_vendor ( v ) )
+    if ( known_vendor ( v ) ) {
         o << " (" << supportedVendors[ v ] << ")";
+    }
 
     o << ", Product=" << showbase << setw ( 6 ) << hex << p ;
 
-    if ( is_supported ( device_info ) )
+    if ( is_supported ( device_info ) ) {
         o << "[" << description ( v, p ) << "]";
+    }
 
     o << endl;
 }
@@ -278,6 +320,9 @@ void help ( const char *programName )
              "         to exactly this level.\n"
              "         Use an integer prefixed by + or - to increase or decrease, respectively,\n"
              "         the brightness by this amount.\n"
+             "         Use a percentage 0%% to 100%% to set the brightness to this monitor-\n"
+             "         specific level. Prefix by + or - to increase or decrease, respectively,\n"
+             "         the brightness by this monitor-specific amount."
              "      Note\n"
              "         When using a negative number prefix the number with two dashes (--), e.g.\n"
              "         -- -1000\n"
@@ -381,6 +426,8 @@ int main ( int argc, char **argv )
 
     bool first_device=true;
 
+    bool percent=false;
+
     int c;
     int digit_optind = 0;
 
@@ -388,12 +435,10 @@ int main ( int argc, char **argv )
 
     init_device_database();
 
-    while ( 1 )
-    {
+    while ( 1 ) {
         int this_option_optind = optind ? optind : 1;
         int option_index = 0;
-        static struct option long_options[] =
-        {
+        static struct option long_options[] = {
             {"about", 0, 0, 'a'},
             {"brief", 0, 0, 'b'},
             {"help", 0, 0, 'h'},
@@ -406,11 +451,11 @@ int main ( int argc, char **argv )
 
         c = getopt_long ( argc, argv, "abhsdl",
                           long_options, &option_index );
-        if ( c == -1 )
+        if ( c == -1 ) {
             break;
+        }
 
-        switch ( c )
-        {
+        switch ( c ) {
         case 'a':
             about();
             exit ( 0 );
@@ -450,20 +495,17 @@ int main ( int argc, char **argv )
     typedef list< const char* > FileList;
     FileList files;
 
-    for ( int param = optind; param < argc; ++param )
-    {
-        if ( mode != USAGE_MODE_DETECT && number ( argv[ param ] ) )
-        {
-            if ( argv[ param ][0] == '+' || argv[ param ][0] == '-' )
-            {
+    for ( int param = optind; param < argc; ++param ) {
+        if ( mode != USAGE_MODE_DETECT && number ( argv[ param ] ) ) {
+            if ( argv[ param ][0] == '+' || argv[ param ][0] == '-' ) {
                 mode = USAGE_MODE_SETREL;
                 amount = atoi ( argv[ param ] );
-            }
-            else
-            {
+            } else {
                 mode = USAGE_MODE_SET;
                 brightness = atoi ( argv[ param ] );
             }
+
+            percent = isPercent ( argv[param] );
 
             continue;
         }
@@ -471,24 +513,21 @@ int main ( int argc, char **argv )
         files.push_back ( argv[ param ] );
     }
 
-    if ( files.empty() )
-    {
+    if ( files.empty() ) {
         help ( argv[0] );
         exit ( 1 );
     }
 
-    if ( mode == USAGE_MODE_SET || mode == USAGE_MODE_SETREL )
-    {
+    if ( mode == USAGE_MODE_SET || mode == USAGE_MODE_SETREL ) {
         open_mode = O_RDWR;
     }
 
-    if ( !silent )
+    if ( !silent ) {
         notice();
+    }
 
-    for ( FileList::iterator it = files.begin(); it != files.end(); ++it )
-    {
-        if ( ( fd = open ( *it, open_mode ) ) < 0 )
-        {
+    for ( FileList::iterator it = files.begin(); it != files.end(); ++it ) {
+        if ( ( fd = open ( *it, open_mode ) ) < 0 ) {
             perror ( *it );
             continue;
         }
@@ -504,10 +543,8 @@ int main ( int argc, char **argv )
         // Get the device information
         ioctl ( fd, HIDIOCGDEVINFO, &device_info );
 
-        if ( mode == USAGE_MODE_DETECT )
-        {
-            if ( is_usb_monitor ( device_info, fd ) )
-            {
+        if ( mode == USAGE_MODE_DETECT ) {
+            if ( is_usb_monitor ( device_info, fd ) ) {
                 cout << *it << ": USB Monitor - "
                      << ( is_supported ( device_info ) ? "SUPPORTED": "UNSUPPORTED" )
                      << ".\t";
@@ -517,31 +554,43 @@ int main ( int argc, char **argv )
             continue;
         }
 
-        if ( not ( selected_device = is_supported ( device_info ) ) )
-        {
+        if ( not ( selected_device = is_supported ( device_info ) ) ) {
             cerr << "Unsupported device:";
 
             format_device ( cerr, device_info );
 
-            if ( !force )
+            if ( !force ) {
                 exit ( 2 );
+            }
         }
 
 
-        if ( ! is_usb_monitor ( device_info, fd ) )
-        {
+        if ( ! is_usb_monitor ( device_info, fd ) ) {
             cerr << *it << ": This device is not a USB monitor!" << endl;
 
             continue;
         }
 
         /* Initialise the internal report structures */
-        if ( ioctl ( fd, HIDIOCINITREPORT,0 ) < 0 )
-        {
+        if ( ioctl ( fd, HIDIOCINITREPORT,0 ) < 0 ) {
             cerr << "FATAL: Failed to initialize internal report structures"
                  << endl;
 
             exit ( 1 );
+        }
+
+        if (percent)
+        {
+          int span = selected_device->brightness_max - selected_device->brightness_min;
+
+          if (amount == 0)
+          {
+            brightness = (min(max(brightness, 0), 100) * span / 100) + selected_device->brightness_min;
+          }
+          else
+          {
+            amount = amount * span / 100;
+          }
         }
 
         usage_ref.report_type = HID_REPORT_TYPE_FEATURE;
@@ -555,70 +604,59 @@ int main ( int argc, char **argv )
         rep_info.report_id = BRIGHTNESS_CONTROL;
         rep_info.num_fields = 1;
 
-        if ( mode == USAGE_MODE_SET )
-        {
-            if ( ioctl ( fd, HIDIOCSUSAGE, &usage_ref ) < 0 )
-            {
+        if ( mode == USAGE_MODE_SET ) {
+            if ( ioctl ( fd, HIDIOCSUSAGE, &usage_ref ) < 0 ) {
                 perror ( "Cannot set brightness" );
                 exit ( 2 );
             }
 
-            if ( ioctl ( fd, HIDIOCSREPORT, &rep_info ) < 0 )
-            {
+            if ( ioctl ( fd, HIDIOCSREPORT, &rep_info ) < 0 ) {
                 perror ( "Cannot read brightness" );
                 exit ( 3 );
             }
-        }
-        else
-        {
-            if ( ioctl ( fd, HIDIOCGUSAGE, &usage_ref ) < 0 )
-            {
+        } else {
+            if ( ioctl ( fd, HIDIOCGUSAGE, &usage_ref ) < 0 ) {
                 perror ( "Cannot ask monitor for brightness control" );
                 exit ( 2 );
             }
 
-            if ( ioctl ( fd, HIDIOCGREPORT, &rep_info ) < 0 )
-            {
+            if ( ioctl ( fd, HIDIOCGREPORT, &rep_info ) < 0 ) {
                 perror ( "Cannot read brightness" );
                 exit ( 3 );
             }
 
-            if ( mode == USAGE_MODE_SETREL )
-            {
+            if ( mode == USAGE_MODE_SETREL ) {
                 brightness = usage_ref.value + amount;
                 brightness = max ( selected_device->brightness_min, brightness );
                 brightness = min ( selected_device->brightness_max, brightness );
                 usage_ref.value = brightness;
 
                 /* set calculated brightness */
-                if ( ioctl ( fd, HIDIOCSUSAGE, &usage_ref ) < 0 )
-                {
+                if ( ioctl ( fd, HIDIOCSUSAGE, &usage_ref ) < 0 ) {
                     perror ( "Cannot set brightness" );
                     exit ( 2 );
                 }
 
-                if ( ioctl ( fd, HIDIOCSREPORT, &rep_info ) < 0 )
-                {
+                if ( ioctl ( fd, HIDIOCSREPORT, &rep_info ) < 0 ) {
                     perror ( "Cannot read brightness" );
                     exit ( 3 );
                 }
 
                 /* read brightness back from device */
-                if ( ioctl ( fd, HIDIOCGUSAGE, &usage_ref ) < 0 )
-                {
+                if ( ioctl ( fd, HIDIOCGUSAGE, &usage_ref ) < 0 ) {
                     perror ( "Cannot ask monitor for brightness control" );
                     exit ( 2 );
                 }
 
-                if ( ioctl ( fd, HIDIOCGREPORT, &rep_info ) < 0 )
-                {
+                if ( ioctl ( fd, HIDIOCGREPORT, &rep_info ) < 0 ) {
                     perror ( "Cannot read brightness" );
                     exit ( 3 );
                 }
             }
 
-            if ( !brief )
+            if ( !brief ) {
                 cout << *it << ": BRIGHTNESS=";
+            }
 
             cout << usage_ref.value << endl;
         }

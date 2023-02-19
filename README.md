@@ -50,6 +50,8 @@ When this option is set, the program will set the brightness to the option's val
 
 The brightness is an integer (whole number). For the Apple Studio Display (2022) this can be between 400 and 60000. Not all values result in a visible backlight power change. It appears that the granularity is around 2980 (for a total of 20 brightness steps from lowest to highest brightness) for the 2022 Apple Studio Display.
 
+Alternatively, you can use a percentage e.g. 20% to set the brightness to this monitor-specific level. You can of course prefix by + or - to increase or decrease, respectively, the brightness by this amount.
+
 ### Examples
 
 Assuming that your monitor's device is `/usb/dev/hiddev0` here are some usage examples:
