@@ -102,7 +102,6 @@ SupportedVendors supportedVendors;
 
 typedef pair<Vendor, string> VendorDesc;
 
-
 /**
  * Does it look like a number?
  *
@@ -116,15 +115,16 @@ bool number( const char* str ){
     return false;
   }
 
+  ++str;
+
   for (char c = *str; c; c=*++str)
   {
-    if (!((c >= '0') && (c <= '9')))
+    if ((c < '0') || (c > '9'))
     {
       return false;
     }
-
   }
-  
+
   return true;
 }
 
