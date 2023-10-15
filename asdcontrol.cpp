@@ -60,6 +60,7 @@ const int APPLE                           = 0x05ac;
 
 // Supported monitors
 const int STUDIO_DISPLAY_27               = 0x1114;
+const int PRO_XDR_DISPLAY_32              = 0x9243;
 
 // Forward Declarations
 void init_device_database();
@@ -670,6 +671,9 @@ int main ( int argc, char **argv )
 void init_device_database()
 {
     supportedVendors.insert ( VendorDesc ( APPLE, "Apple" ) );
+
+    supportedDevices.insert ( DeviceId ( APPLE, PRO_XDR_DISPLAY_32,
+                                         "Apple Pro XDR Display (2019, 32\")", 400, 60000 ) );
 
     supportedDevices.insert ( DeviceId ( APPLE, STUDIO_DISPLAY_27,
                                          "Apple Studio Display (2022, 27\")", 400, 60000 ) );
