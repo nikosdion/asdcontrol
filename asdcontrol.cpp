@@ -1,6 +1,6 @@
 /*
  * ASDControl -- Apple Studio Display Brightness Control
- * Copyright (c) 2023 Nicholas K. Dionysopoulos
+ * Copyright (c) 2023-2024 Nicholas K. Dionysopoulos
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -363,7 +363,7 @@ void help ( const char *programName )
 void notice()
 {
     printf ( "ASDControl " VERSION " -- Apple Studio Display Brightness Control\n"
-             "Copyright (c) 2023 Nicholas K. Dionysopoulos\n\n"
+             "Copyright (c) 2023-2024 Nicholas K. Dionysopoulos\n\n"
            );
 }
 
@@ -371,7 +371,7 @@ void notice()
 void about()
 {
     printf ( "ASDControl " VERSION " -- Apple Studio Display Brightness Control\n"
-             "Copyright (c) 2023 Nicholas K. Dionysopoulos\n\n"
+             "Copyright (c) 2023-2024 Nicholas K. Dionysopoulos\n\n"
 
              "This program is free software; you can redistribute it and/or modify\n"
              "it under the terms of the GNU General Public License as published by\n"
