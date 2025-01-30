@@ -74,8 +74,11 @@ Read and report the current brightness level.
 
 `asdcontrol /usb/dev/hiddev0 10000`
 
-Set the brightness to 30000; that's about 50% brightness. The range of values for Apple Studio Display is 400 to 60000.
-The range of values for Apple XDR Display is still untested.
+Set the brightness to 30000; that's about 50% brightness on an Apple Studio Display. The range of values for Apple Studio Display is 400 to 60000.
+
+The range of values for Apple XDR Display [has been reported](https://github.com/nikosdion/asdcontrol/issues/6) to be between 400 and 50000.
+
+As far as we know, setting a value out of the supported range has no effect.
 
 `asdcontrol /dev/hiddev0 +5960`
 
