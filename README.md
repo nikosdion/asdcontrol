@@ -88,6 +88,12 @@ Increment current brightness by 5960 (that's a 10% brightness increase).
 
 Decrement current brightness by 5960 (that's a 10% brightness decreate). Please note the `--` before the negative number. Without the double dash, a single dash (‘tack’) is understood as setting an option, therefore it won't work.
 
+## GUI
+
+There's another project that provides a basic GTK4 GUI for `asdcontrol`.
+
+[asdcontrol-gnome on Github](https://github.com/sznowicki/asdcontrol-gnome).
+
 ## Troubleshooting
 
 ### Cannot detect the display
