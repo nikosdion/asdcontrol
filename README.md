@@ -1,6 +1,11 @@
+## NO LONGER MAINTAINED
+
+> [!WARNING]  
+> This software is no longer maintained. I no longer own an Apple Studio Display.
+
 # Apple Display Brightness Control
 
-A simple program to control the brightness of Apple thunderbolt dipsplays (Pro Display XDR, Studio Display) on Linux.
+A simple program to control the brightness of Apple thunderbolt displays (Pro Display XDR, Studio Display) on Linux.
 
 Based on acdcontrol by Pavel Gurevich.
 
